@@ -1,0 +1,46 @@
+name: Docker CI
+
+on:
+  push:
+    tags:
+      - 'vLaravel*'  # Disparar el flujo de trabajo cuando se crea un tag que comience con 'vLaravel'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Paso 1: Clonar el repositorio
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Paso 2: Login a Docker Hub
+      - name: Login to Docker Hub
+        env:
+          DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      # Paso 3: Construir la imagen Docker para Laravel
+      - name: Build Docker image for Laravel
+        if: startsWith(github.ref, 'refs/tags/vLaravel.')
+        run: |
+          TAG=${GITHUB_REF##*/}
+          echo "Construyendo imagen Laravel con tag: $TAG"
+          docker build -t marinolb/laravel-app:$TAG ./laravel-reto  # Asegúrate de que aquí esté el Dockerfile
+
+      # Paso 4: Ejecutar los tests de Laravel
+      - name: Run Laravel tests
+        if: github.ref == 'refs/heads/master'  # Asegúrate de que se ejecuta solo en la rama master
+        run: |
+          echo "Ejecutando tests de Laravel..."
+          docker run --rm -v ${{ github.workspace }}:/app -w /app/workspace marinolb/laravel-app:latest php artisan test
+
+      # Paso 5: Publicar la imagen Docker para Laravel
+      - name: Push Docker image for Laravel
+        if: startsWith(github.ref, 'refs/tags/vLaravel.') && success()  # Solo si el build anterior fue exitoso
+        run: |
+          TAG=${GITHUB_REF##*/}
+          echo "Publicando imagen Laravel con tag: $TAG"
+          docker push marinolb/laravel-app:$TAG
+
