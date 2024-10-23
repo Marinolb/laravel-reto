@@ -27,7 +27,7 @@ jobs:
         run: |
           TAG=${GITHUB_REF##*/}
           echo "Construyendo imagen Laravel con tag: $TAG"
-          docker build -t marinolb/laravel-app:$TAG ./laravel-reto  # Asegúrate de que aquí esté el Dockerfile
+          docker build -t marinolb/laravel-app:$TAG .  # Asegúrate de que aquí esté el Dockerfile
 
       # Paso 4: Ejecutar los tests de Laravel
       - name: Run Laravel tests
